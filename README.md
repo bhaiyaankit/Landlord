@@ -2,7 +2,7 @@
 
 A working demo of a property-management app for a landlord with tenants in both the UK and India. It covers the full tenancy, from first enquiry to move-out.
 
-Open `app/index.html` in any browser. No install or server is needed. It starts with sample data for 7 properties (London, Manchester, Bristol, Bengaluru, Pune, Mumbai) and 8 tenants. Changes are saved in the browser, and **Setup → Reset sample data** starts the demo again.
+Open `app/index.html` in any browser (the full standalone page is `public/index.html`, which is what the public site serves). No install or server is needed. It starts with sample data for 7 properties (London, Manchester, Bristol, Bengaluru, Pune, Mumbai) and 8 tenants. Changes are saved in the browser, and **Setup → Reset sample data** starts the demo again.
 
 ## What it covers
 
