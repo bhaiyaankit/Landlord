@@ -1,0 +1,723 @@
+<title>Landlord Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sidebar of work areas + a working canvas; country filter and FX live in the top bar. */
+:root{
+  --surface:#f3f6f4; --raised:#ffffff; --sunken:#e8eeea;
+  --ink:#17201c; --ink-muted:#55625b; --line:#d9e1dc;
+  --brand:#1f5c4a; --brand-ink:#ffffff; --brand-soft:#dcebe4;
+  --accent:#c8691c; --accent-ink:#8f4a0f; --accent-soft:#f8e6d3;
+  --ok:#22704a; --ok-soft:#dff0e6; --warn:#8a5a00; --warn-soft:#fbeec8;
+  --bad:#b42318; --bad-soft:#fde4e1; --info:#2c5d8f; --info-soft:#e1ecf7;
+  --font-display:"Sora",system-ui,sans-serif; --font-sans:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:14px;
+  --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
+  --shadow:0 1px 2px rgba(23,32,28,.06),0 4px 16px rgba(23,32,28,.06);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --surface:#111614; --raised:#1a201d; --sunken:#0c100e; --ink:#eaf0ec; --ink-muted:#a2aea7; --line:#2b3530;
+  --brand:#6fc3a4; --brand-ink:#0c1a14; --brand-soft:#1c3a30; --accent:#f0a35e; --accent-ink:#f5b97f; --accent-soft:#3d2a1a;
+  --ok:#6fcf97; --ok-soft:#173326; --warn:#e3b341; --warn-soft:#3a2f12; --bad:#ff8a7a; --bad-soft:#3d1c18; --info:#8ab8e8; --info-soft:#18283a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --surface:#111614; --raised:#1a201d; --sunken:#0c100e; --ink:#eaf0ec; --ink-muted:#a2aea7; --line:#2b3530;
+  --brand:#6fc3a4; --brand-ink:#0c1a14; --brand-soft:#1c3a30; --accent:#f0a35e; --accent-ink:#f5b97f; --accent-soft:#3d2a1a;
+  --ok:#6fcf97; --ok-soft:#173326; --warn:#e3b341; --warn-soft:#3a2f12; --bad:#ff8a7a; --bad-soft:#3d1c18; --info:#8ab8e8; --info-soft:#18283a;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 16px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--surface);color:var(--ink);font-family:var(--font-sans);font-size:14px;line-height:1.5}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;letter-spacing:-.01em}
+h1{font-size:24px;font-weight:600} h2{font-size:17px;font-weight:600} h3{font-size:14px;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.mono,.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-muted)} .small{font-size:12px}
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100%}
+.side{background:var(--raised);border-right:1px solid var(--line);padding:var(--space-4) var(--space-3);position:sticky;top:0;height:100vh;overflow:auto;display:flex;flex-direction:column;gap:var(--space-4)}
+.logo{display:flex;align-items:center;gap:var(--space-2);padding:0 var(--space-2)}
+.logo svg{flex:none}
+.logo b{font-family:var(--font-display);font-size:17px}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:var(--radius-md);color:var(--ink);text-decoration:none;font-weight:500}
+.nav a:hover{background:var(--sunken)}
+.nav a.on{background:var(--brand-soft);color:var(--ink)}
+.nav .sec{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);padding:var(--space-3) 10px var(--space-1)}
+.count{font-family:var(--font-mono);font-size:11px;background:var(--bad-soft);color:var(--bad);border-radius:999px;padding:0 7px}
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line);padding-block:var(--space-3);padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));display:flex;gap:var(--space-3);align-items:center;flex-wrap:wrap}
+.top .grow{flex:1}
+.seg{display:inline-flex;background:var(--sunken);border-radius:var(--radius-md);padding:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:500;color:var(--ink-muted)}
+.seg button.on{background:var(--raised);color:var(--ink);box-shadow:var(--shadow)}
+.content{padding-block:var(--space-6) 64px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:var(--space-6);max-width:1240px;width:100%}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:var(--space-4);flex-wrap:wrap}
+.head p{margin:4px 0 0;color:var(--ink-muted);max-width:68ch}
+.btn{border:1px solid var(--line);background:var(--raised);padding:7px 12px;border-radius:var(--radius-md);cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--ink-muted)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.btn.danger{color:var(--bad)}
+.btn.sm{padding:3px 9px;font-size:12px}
+.row{display:flex;gap:var(--space-2);flex-wrap:wrap;align-items:center}
+.panel{background:var(--raised);border:1px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-4);min-width:0}
+.panel>h2{margin-bottom:var(--space-3)}
+.panel .ph{display:flex;justify-content:space-between;align-items:center;gap:var(--space-2);margin-bottom:var(--space-3);flex-wrap:wrap}
+.grid{display:grid;gap:var(--space-4)}
+.g2{grid-template-columns:repeat(auto-fit,minmax(min(100%,380px),1fr))}
+.g3{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:var(--space-3)}
+.kpi{background:var(--raised);border:1px solid var(--line);border-radius:var(--radius-lg);padding:var(--space-3) var(--space-4)}
+.kpi .l{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-muted)}
+.kpi .v{font-family:var(--font-display);font-size:20px;line-height:1.3;font-weight:600;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--ink-muted)}
+.kpi.alert .v{color:var(--bad)}
+.tw{overflow-x:auto;margin:0 calc(-1 * var(--space-4));padding:0 var(--space-4)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:500;color:var(--ink-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right}
+tr.click{cursor:pointer} tr.click:hover td{background:var(--sunken)}
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-ok{background:var(--ok-soft);color:var(--ok)} .p-warn{background:var(--warn-soft);color:var(--warn)}
+.p-bad{background:var(--bad-soft);color:var(--bad)} .p-info{background:var(--info-soft);color:var(--info)}
+.p-mute{background:var(--sunken);color:var(--ink-muted)} .p-brand{background:var(--brand-soft);color:var(--ink)}
+.flag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:500;border:1px solid var(--line);border-radius:var(--radius-sm);padding:0 4px;color:var(--ink-muted);vertical-align:1px}
+.list{display:flex;flex-direction:column}
+.item{display:flex;gap:var(--space-3);justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .t{font-weight:500} .item>div:first-child{min-width:0}
+.board{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:var(--space-3);overflow-x:auto;padding-bottom:var(--space-2)}
+.col{background:var(--sunken);border-radius:var(--radius-lg);padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);min-height:160px}
+.col h3{display:flex;justify-content:space-between;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);font-family:var(--font-sans)}
+.card{background:var(--raised);border:1px solid var(--line);border-radius:var(--radius-md);padding:var(--space-3);cursor:pointer;display:flex;flex-direction:column;gap:6px}
+.card:hover{border-color:var(--brand)}
+.bar{height:6px;background:var(--sunken);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:999px}
+.card .bar{background:var(--line)}
+.check{display:flex;flex-direction:column}
+.check label{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.check label:last-child{border-bottom:0}
+.check input{margin-top:3px;accent-color:var(--brand);width:16px;height:16px;flex:none}
+.check .hint{display:block;font-size:12px;color:var(--ink-muted)}
+.check input:checked + span{color:var(--ink-muted)}
+.note{background:var(--info-soft);border-radius:var(--radius-md);padding:var(--space-3);font-size:13px}
+.note.warn{background:var(--warn-soft)}
+.note b{font-weight:600}
+.chart{display:flex;flex-direction:column;gap:10px}
+.chart .r{display:grid;grid-template-columns:140px 1fr 110px;gap:var(--space-3);align-items:center;font-size:13px}
+.chart .track{height:14px;background:var(--sunken);border-radius:var(--radius-sm);position:relative;overflow:hidden}
+.chart .inc{position:absolute;inset:0 auto 0 0;background:var(--brand)}
+.chart .exp{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.85;height:50%;top:50%}
+.legend{display:flex;gap:var(--space-4);font-size:12px;color:var(--ink-muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.empty{color:var(--ink-muted);padding:var(--space-4) 0;text-align:center}
+/* drawer & modal */
+.scrim{position:fixed;inset:0;background:rgba(10,16,13,.45);z-index:20;display:flex;justify-content:flex-end}
+.drawer{background:var(--surface);width:min(640px,100%);height:100%;overflow:auto;padding-block:max(20px,env(safe-area-inset-top,0px)) 40px;padding-left:20px;padding-right:max(20px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:var(--space-4);box-shadow:var(--shadow)}
+.drawer>*,.modal>*{flex-shrink:0}
+.scrim.center{justify-content:center;align-items:center;padding:16px}
+.modal{background:var(--raised);border-radius:var(--radius-lg);width:min(520px,100%);max-height:92vh;overflow:auto;padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.form{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.form .full{grid-column:1/-1}
+.form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:500;color:var(--ink-muted)}
+.form input,.form select,.form textarea{border:1px solid var(--line);background:var(--surface);border-radius:var(--radius-md);padding:8px 10px;font-size:14px;color:var(--ink);width:100%}
+.form textarea{min-height:80px;resize:vertical}
+pre.msg{white-space:pre-wrap;background:var(--sunken);border-radius:var(--radius-md);padding:var(--space-3);font-family:var(--font-sans);font-size:13px;margin:0}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;background:none;padding:8px 10px;cursor:pointer;color:var(--ink-muted);font-weight:500;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--brand)}
+.dl{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;font-size:13px}
+.dl dt{color:var(--ink-muted)} .dl dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.toast{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:9px 16px;border-radius:var(--radius-md);z-index:40;font-weight:500}
+.demo-flag{font-size:11px;color:var(--accent-ink);background:var(--accent-soft);border-radius:var(--radius-sm);padding:2px 8px;font-weight:500}
+.portal-hero{background:var(--brand);color:var(--brand-ink);border-radius:var(--radius-lg);padding:var(--space-6);display:flex;justify-content:space-between;gap:var(--space-4);flex-wrap:wrap}
+.portal-hero .v{font-family:var(--font-display);font-size:30px;font-weight:600}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;border-right:0;border-bottom:1px solid var(--line);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .nav{flex-direction:row;overflow-x:auto;gap:4px}
+  .nav .sec{display:none}
+  .nav a{white-space:nowrap}
+  .top,.content{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .chart .r{grid-template-columns:96px 1fr 84px}
+  .form{grid-template-columns:1fr}
+  .dl{grid-template-columns:110px 1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="8" fill="var(--brand)"/><path d="M7 14.5 14 8l7 6.5V21H7z" fill="var(--brand-ink)"/><rect x="12" y="15" width="4" height="6" fill="var(--accent)"/></svg>
+      <b>Landlord Desk</b>
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </aside>
+  <div class="main">
+    <div class="top">
+      <div class="seg" id="country" role="group" aria-label="Country">
+        <button data-c="ALL">All</button><button data-c="UK">UK £</button><button data-c="IN">India ₹</button>
+      </div>
+      <span class="grow"></span>
+      <span class="demo-flag">Sample data</span>
+      <span class="small muted" id="today"></span>
+    </div>
+    <main class="content" id="view"></main>
+  </div>
+</div>
+<div id="layer"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=p=>p+Math.random().toString(36).slice(2,8);
+const pad=n=>String(n).padStart(2,"0");
+const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const TODAY=new Date(); TODAY.setHours(0,0,0,0);
+const T=iso(TODAY);
+const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const addDays=(s,n)=>{const d=parse(s);d.setDate(d.getDate()+n);return iso(d)};
+const addMonths=(s,n)=>{const d=parse(s);const day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);const last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return iso(d)};
+const daysBetween=(a,b)=>Math.round((parse(b)-parse(a))/864e5);
+const ym=s=>s.slice(0,7);
+const monthName=k=>{const [y,m]=k.split("-").map(Number);return new Date(y,m-1,1).toLocaleDateString("en-GB",{month:"short",year:"numeric"})};
+const fdate=s=>s?parse(s).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"—";
+const CUR={UK:"GBP",IN:"INR"};
+const money=(n,c)=>{n=Math.round((n||0)*100)/100;const neg=n<0;n=Math.abs(n);
+  const s=c==="IN"||c==="INR"?"₹"+n.toLocaleString("en-IN",{maximumFractionDigits:0}):"£"+n.toLocaleString("en-GB",{minimumFractionDigits:n%1?2:0,maximumFractionDigits:2});return (neg?"−":"")+s};
+
+/* ---------- country rules ---------- */
+const ONBOARD={
+ UK:[
+  ["id","Identity and Right to Rent check","Check original ID for every adult occupant and keep a dated copy."],
+  ["ref","Referencing","Employer, previous landlord and credit check."],
+  ["afford","Affordability and guarantor","Rent is usually expected to be under about a third of income; take a guarantor if not."],
+  ["holding","Holding deposit","Capped at 1 week's rent under the Tenant Fees Act."],
+  ["agreement","Tenancy agreement signed","England: assured periodic tenancy with a written statement of terms (Renters' Rights Act)."],
+  ["deposit","Tenancy deposit received","Capped at 5 weeks' rent where annual rent is under £50,000."],
+  ["protect","Deposit protected (DPS, TDS or mydeposits)","Within 30 days of receipt, with prescribed information served."],
+  ["docs","Gas Safety, EPC and EICR copies given","Give copies before move-in and keep proof of service."],
+  ["alarms","Smoke and CO alarms tested on day one",""],
+  ["inventory","Inventory and check-in report signed","Dated photos of every room, signed by the tenant."],
+  ["meters","Meter readings, council tax and utilities notified",""],
+  ["so","Standing order set up","Rent due date matches the agreement."],
+  ["keys","Keys handed over","Record how many sets were given."]],
+ IN:[
+  ["kyc","KYC: Aadhaar and PAN copies","For every adult occupant."],
+  ["employer","Employer or college ID and references",""],
+  ["police","Police verification submitted","Mandatory in most cities; many accept it online."],
+  ["agreement","Rent agreement drafted","Usually 11 months. Longer terms must be registered."],
+  ["stamp","Stamp duty paid and agreement registered","Use e-registration where the state offers it."],
+  ["deposit","Security deposit received","Check state rules. The Model Tenancy Act caps it at 2 months for homes."],
+  ["noc","Society or RWA move-in form and NOC",""],
+  ["inventory","Inventory of fixtures and furniture signed","Fans, lights, ACs, geyser, appliances and their condition."],
+  ["meters","Electricity and water meter readings",""],
+  ["maint","Society maintenance charges agreed","Say in the agreement who pays."],
+  ["mandate","Rent mandate set up (UPI AutoPay or NEFT)",""],
+  ["pan","Landlord PAN shared with tenant","The tenant needs it for HRA claims and TDS when rent is over ₹50,000 a month."],
+  ["keys","Keys and access cards handed over",""]]
+};
+const MOVEOUT={
+ UK:[
+  ["notice","Notice received and checked","Tenant: at least 2 months under the Renters' Rights Act periodic regime."],
+  ["inspect","Check-out inspection against the inventory","Allow for fair wear and tear."],
+  ["photos","Dated check-out photos taken",""],
+  ["meters","Final meter readings, council tax and utilities notified",""],
+  ["keys","All keys returned",""],
+  ["deduct","Deductions proposed with evidence","Send to the tenant before raising them with the scheme."],
+  ["refund","Deposit returned through the scheme","Within 10 days of agreeing the amounts."],
+  ["address","Forwarding address recorded",""],
+  ["relet","Re-letting started",""]],
+ IN:[
+  ["notice","Notice received under the agreement","Usually 1 to 2 months."],
+  ["inspect","Joint inspection against the inventory",""],
+  ["dues","Pending rent, electricity and society dues cleared",""],
+  ["noc","Society move-out NOC",""],
+  ["paint","Painting and cleaning deductions agreed","Only if the agreement provides for them."],
+  ["keys","Keys and access cards returned",""],
+  ["refund","Deposit refunded by NEFT or UPI","Keep the transaction reference."],
+  ["records","Police and society records updated",""],
+  ["relet","Re-letting started",""]]
+};
+const COMPLIANCE_TYPES={UK:["Gas Safety certificate (CP12)","EICR electrical report","EPC","Landlord insurance","Deposit protection","HMO or selective licence","Smoke and CO alarm check"],IN:["Rent agreement renewal","Property tax","Police verification","Society maintenance","Home insurance","Fire safety NOC"]};
+const STAGES=[["lead","Enquiry"],["application","Application"],["verification","Checks"],["agreement","Agreement and deposit"],["movein","Ready to move in"],["active","Active"],["notice","On notice"],["ended","Ended"]];
+const stageName=s=>(STAGES.find(x=>x[0]===s)||[,s])[1];
+const MAINT_STATUS=["Reported","Assigned","In progress","Waiting on tenant","Resolved"];
+const PRIORITY={Emergency:"p-bad",High:"p-warn",Normal:"p-info",Low:"p-mute"};
+const PRIORITY_SLA={Emergency:1,High:3,Normal:14,Low:28};
+const METHODS={UK:["Bank transfer","Standing order","Card","Cash"],IN:["UPI","NEFT / IMPS","Cheque","Cash"]};
+
+/* ---------- seed ---------- */
+function seed(){
+  const m=n=>addMonths(T,n);
+  const props=[
+   {id:"p1",name:"Camden 2-bed flat",country:"UK",city:"London",address:"Flat 3, 18 Arlington Road, NW1",beds:2,rent:2350,status:"Let"},
+   {id:"p2",name:"Didsbury terrace",country:"UK",city:"Manchester",address:"42 Wilmslow Road, M20",beds:3,rent:1450,status:"Let"},
+   {id:"p3",name:"Clifton studio",country:"UK",city:"Bristol",address:"7b Royal York Crescent, BS8",beds:1,rent:1050,status:"Vacant"},
+   {id:"p4",name:"Koramangala 3BHK",country:"IN",city:"Bengaluru",address:"A-604, Prestige Tower, 5th Block",beds:3,rent:62000,status:"Let"},
+   {id:"p5",name:"Baner 2BHK",country:"IN",city:"Pune",address:"B-1203, Sai Sharan, Baner Road",beds:2,rent:28000,status:"Let"},
+   {id:"p6",name:"Andheri West 1BHK",country:"IN",city:"Mumbai",address:"902, Sea Breeze CHS, Lokhandwala",beds:1,rent:45000,status:"Let"},
+   {id:"p7",name:"Whitefield 2BHK",country:"IN",city:"Bengaluru",address:"C-310, Brigade Lakefront",beds:2,rent:32000,status:"Vacant"}];
+  const full=c=>Object.fromEntries(ONBOARD[c].map(x=>[x[0],true]));
+  const some=(c,n)=>Object.fromEntries(ONBOARD[c].slice(0,n).map(x=>[x[0],true]));
+  const tenants=[
+   {id:"t1",name:"Hannah Price",email:"hannah.price@example.com",phone:"+44 7700 900123",propertyId:"p1",stage:"active",rent:2350,dueDay:1,start:m(-14),end:"",deposit:2711,depositRef:"DPS 4471-2290",onboard:full("UK"),moveout:{},deductions:[]},
+   {id:"t2",name:"Daniel Okafor",email:"d.okafor@example.com",phone:"+44 7700 900456",propertyId:"p2",stage:"active",rent:1450,dueDay:5,start:m(-8),end:"",deposit:1673,depositRef:"TDS 88120",onboard:full("UK"),moveout:{},deductions:[]},
+   {id:"t3",name:"Megan Shaw",email:"megan.shaw@example.com",phone:"+44 7700 900789",propertyId:"p3",stage:"application",rent:1050,dueDay:1,start:addDays(T,21),end:"",deposit:1211,depositRef:"",onboard:some("UK",2),moveout:{},deductions:[]},
+   {id:"t4",name:"Rohan Mehta",email:"rohan.mehta@example.com",phone:"+91 98450 11223",propertyId:"p4",stage:"active",rent:62000,dueDay:5,start:m(-10),end:addMonths(m(-10),11),deposit:186000,depositRef:"NEFT HDFC 7731",onboard:full("IN"),moveout:{},deductions:[]},
+   {id:"t5",name:"Priya Kulkarni",email:"priya.k@example.com",phone:"+91 98220 44556",propertyId:"p5",stage:"active",rent:28000,dueDay:1,start:m(-5),end:addMonths(m(-5),11),deposit:56000,depositRef:"UPI 4410",onboard:full("IN"),moveout:{},deductions:[]},
+   {id:"t6",name:"Arjun and Neha Iyer",email:"arjun.iyer@example.com",phone:"+91 98200 77889",propertyId:"p6",stage:"notice",rent:45000,dueDay:3,start:m(-11),end:addDays(T,24),deposit:90000,depositRef:"NEFT ICICI 2209",onboard:full("IN"),moveout:{notice:true},deductions:[{reason:"Repaint living room (per clause 14)",amount:8500}],noticeDate:addDays(T,-36)},
+   {id:"t7",name:"Kavya Reddy",email:"kavya.reddy@example.com",phone:"+91 99000 33445",propertyId:"p7",stage:"verification",rent:32000,dueDay:5,start:addDays(T,14),end:"",deposit:64000,depositRef:"",onboard:some("IN",3),moveout:{},deductions:[]},
+   {id:"t8",name:"Tom Ellison",email:"tom.ellison@example.com",phone:"+44 7700 900321",propertyId:"p3",stage:"lead",rent:1050,dueDay:1,start:"",end:"",deposit:0,depositRef:"",onboard:{},moveout:{},deductions:[]}];
+  const S={v:1,fx:108,props,tenants,charges:[],payments:[],maint:[],issues:[],expenses:[],compliance:[],log:[]};
+  ensureCharges(S);
+  // pay everything before this month, except planned arrears
+  const cur=ym(T);
+  S.charges.forEach(c=>{
+    const late = (c.tenantId==="t2"&&c.period>=ym(m(-1))) || (c.tenantId==="t5"&&c.period===cur);
+    const paidThisMonth = c.period===cur && ["t1","t4","t6"].includes(c.tenantId);
+    if(c.period<cur && !late || paidThisMonth){
+      const t=S.tenants.find(x=>x.id===c.tenantId);const p=S.props.find(x=>x.id===t.propertyId);
+      S.payments.push({id:uid("pay"),tenantId:c.tenantId,amount:c.amount,date:addDays(c.due,c.tenantId==="t2"?3:-1)<T?addDays(c.due,c.tenantId==="t2"?3:-1):c.due,method:METHODS[p.country][0],ref:""});
+    }
+  });
+  S.payments.push({id:uid("pay"),tenantId:"t2",amount:900,date:addDays(T,-22),method:"Bank transfer",ref:"Part payment"});
+  S.maint=[
+   {id:"m1",propertyId:"p2",tenantId:"t2",title:"Boiler not producing hot water or heating",category:"Heating",priority:"Emergency",status:"Assigned",reported:addDays(T,-1),contractor:"Northwest Gas Services, 0161 496 0000",cost:0,notes:"Gas Safe engineer booked for tomorrow 8–10am. Temporary heaters supplied."},
+   {id:"m2",propertyId:"p1",tenantId:"t1",title:"Damp patch on bedroom ceiling",category:"Damp and mould",priority:"High",status:"Reported",reported:addDays(T,-3),contractor:"",cost:0,notes:"Tenant sent photos. Possible leak from flat above."},
+   {id:"m3",propertyId:"p4",tenantId:"t4",title:"Bathroom tap leaking",category:"Plumbing",priority:"Normal",status:"In progress",reported:addDays(T,-6),contractor:"Ramesh (plumber), 98450 66778",cost:1800,notes:"Cartridge ordered."},
+   {id:"m4",propertyId:"p5",tenantId:"t5",title:"AC service before summer",category:"Appliances",priority:"Low",status:"Resolved",reported:addDays(T,-40),contractor:"CoolCare Pune",cost:2500,notes:""},
+   {id:"m5",propertyId:"p6",tenantId:"t6",title:"Kitchen exhaust fan noisy",category:"Appliances",priority:"Low",status:"Waiting on tenant",reported:addDays(T,-12),contractor:"Society electrician",cost:0,notes:"Needs an access slot from tenant."}];
+  S.issues=[
+   {id:"i1",tenantId:"t2",type:"Rent arrears",title:"Arrears: agree a payment plan",status:"Open",date:addDays(T,-5),notes:"Tenant says a new job starts next month. Offered £250 a month on top of rent."},
+   {id:"i2",tenantId:"t1",type:"Neighbour",title:"Noise complaint from the flat below",status:"Open",date:addDays(T,-9),notes:"Second complaint about late-night music. Spoke to the tenant by phone."},
+   {id:"i3",tenantId:"t5",type:"Society / RWA",title:"Parking slot dispute with society",status:"Resolved",date:addDays(T,-30),notes:"Society secretary confirmed slot B-14."},
+   {id:"i4",tenantId:"t6",type:"Notice",title:"Notice to vacate received",status:"Open",date:addDays(T,-36),notes:"Two months' notice by email. Moving to Bengaluru."},
+   {id:"i5",tenantId:"t4",type:"Renewal",title:"Agreement renewal: tenant wants to stay",status:"Open",date:addDays(T,-2),notes:"Proposing 7% escalation for the new 11-month agreement."}];
+  S.expenses=[
+   {id:uid("e"),propertyId:"p1",date:addDays(T,-60),category:"Service charge",amount:840,note:"Half-year service charge"},
+   {id:uid("e"),propertyId:"p1",date:addDays(T,-200),category:"Insurance",amount:310,note:"Landlord buildings and contents"},
+   {id:uid("e"),propertyId:"p2",date:addDays(T,-90),category:"Repairs",amount:220,note:"Gutter clearing"},
+   {id:uid("e"),propertyId:"p2",date:addDays(T,-120),category:"Letting agent",amount:520,note:"Tenant find fee"},
+   {id:uid("e"),propertyId:"p3",date:addDays(T,-20),category:"Repairs",amount:380,note:"Redecoration between tenants"},
+   {id:uid("e"),propertyId:"p4",date:addDays(T,-45),category:"Society maintenance",amount:24000,note:"Quarterly maintenance"},
+   {id:uid("e"),propertyId:"p4",date:addDays(T,-150),category:"Property tax",amount:18500,note:"BBMP property tax"},
+   {id:uid("e"),propertyId:"p5",date:addDays(T,-40),category:"Repairs",amount:2500,note:"AC service"},
+   {id:uid("e"),propertyId:"p6",date:addDays(T,-70),category:"Society maintenance",amount:15600,note:"Quarterly maintenance"},
+   {id:uid("e"),propertyId:"p7",date:addDays(T,-15),category:"Repairs",amount:12000,note:"Deep clean and minor repairs"}];
+  const c=(pid,type,days,ref)=>({id:uid("c"),propertyId:pid,type,expires:addDays(T,days),ref:ref||""});
+  S.compliance=[
+   c("p1","Gas Safety certificate (CP12)",19,"CP12-77812"),c("p1","EICR electrical report",900),c("p1","EPC",2100,"Band C"),
+   c("p2","Gas Safety certificate (CP12)",160),c("p2","EICR electrical report",-5),c("p2","EPC",1400,"Band D"),c("p2","Landlord insurance",48),
+   c("p3","Gas Safety certificate (CP12)",230),c("p3","EPC",-40,"Band E. Renew before letting"),
+   c("p4","Rent agreement renewal",T<addMonths(T,1)?daysBetween(T,S.tenants[3].end):30),c("p4","Property tax",140),
+   c("p5","Rent agreement renewal",daysBetween(T,S.tenants[4].end)),c("p5","Police verification",-2,"Renewal due"),
+   c("p6","Society maintenance",12),c("p6","Home insurance",95),c("p7","Police verification",10,"For new tenant")];
+  S.log=[{at:T,text:"Sample data loaded"}];
+  return S;
+}
+function ensureCharges(S){
+  const cur=ym(T);
+  S.tenants.forEach(t=>{
+    if(!["active","notice","ended"].includes(t.stage)||!t.start)return;
+    let k=ym(t.start);const stop=t.stage==="ended"&&t.end?ym(t.end):cur;
+    while(k<=stop&&k<=cur){
+      const id=t.id+"-"+k;
+      if(!S.charges.some(c=>c.id===id)){
+        const due=k+"-"+pad(Math.min(t.dueDay,28));
+        S.charges.push({id,tenantId:t.id,period:k,type:"Rent",amount:t.rent,due});
+      }
+      k=ym(addMonths(k+"-01",1));
+    }
+  });
+  S.charges.sort((a,b)=>a.due<b.due?-1:1);
+}
+
+/* ---------- store ---------- */
+const KEY="landlord-desk-v1";
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY)||"null")}catch(e){S=null}
+if(!S||S.v!==1)S=seed();
+ensureCharges(S);
+const ui={country:"ALL",view:"dashboard"};
+try{ui.country=localStorage.getItem(KEY+"-c")||"ALL"}catch(e){}
+function save(msg){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){} if(msg){S.log.unshift({at:T,text:msg});S.log=S.log.slice(0,60);try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){};toast(msg)} render()}
+function toast(m){const d=document.createElement("div");d.className="toast";d.textContent=m;document.body.appendChild(d);setTimeout(()=>d.remove(),2200)}
+
+/* ---------- derived ---------- */
+const prop=id=>S.props.find(p=>p.id===id);
+const ten=id=>S.tenants.find(t=>t.id===id);
+const ctry=t=>prop(t.propertyId).country;
+const inScope=country=>ui.country==="ALL"||ui.country===country;
+const scopedProps=()=>S.props.filter(p=>inScope(p.country));
+const scopedTenants=()=>S.tenants.filter(t=>inScope(ctry(t)));
+function ledger(tid){
+  // allocate payments to oldest charges first
+  const ch=S.charges.filter(c=>c.tenantId===tid).map(c=>({...c,paid:0}));
+  let pot=S.payments.filter(p=>p.tenantId===tid).reduce((a,p)=>a+p.amount,0);
+  ch.forEach(c=>{const x=Math.min(pot,c.amount);c.paid=x;pot-=x});
+  ch.forEach(c=>{c.bal=c.amount-c.paid;c.late=c.bal>0&&c.due<T?daysBetween(c.due,T):0;
+    c.state=c.bal<=0?"Paid":c.due>=T?"Due":c.paid>0?"Part paid":"Overdue"});
+  return {charges:ch,credit:pot};
+}
+function balance(tid){const l=ledger(tid);return l.charges.reduce((a,c)=>a+c.bal,0)-l.credit}
+function arrears(tid){return ledger(tid).charges.filter(c=>c.late>0).reduce((a,c)=>a+c.bal,0)}
+function oldestLate(tid){const c=ledger(tid).charges.find(c=>c.late>0);return c?c.late:0}
+function compState(c){const d=daysBetween(T,c.expires);return d<0?["Expired","p-bad",d]:d<=30?["Due soon","p-warn",d]:d<=60?["Upcoming","p-info",d]:["Valid","p-ok",d]}
+const openMaint=()=>S.maint.filter(m=>m.status!=="Resolved"&&inScope(prop(m.propertyId).country));
+const lateTenants=()=>scopedTenants().filter(t=>arrears(t.id)>0);
+const compAlerts=()=>S.compliance.filter(c=>inScope(prop(c.propertyId).country)&&daysBetween(T,c.expires)<=30);
+
+/* ---------- nav ---------- */
+const VIEWS=[
+ ["dashboard","Overview"],["sec","Tenancies"],["onboarding","Onboarding"],["tenants","Tenants"],["moveout","Move-out"],
+ ["sec","Money"],["rent","Rent and payments"],["expenses","Expenses"],["reports","Reports"],
+ ["sec","Property"],["properties","Properties"],["maintenance","Maintenance"],["issues","Issues and notices"],["compliance","Compliance"],
+ ["sec","Other"],["portal","Tenant portal"],["setup","Setup"]];
+function renderNav(){
+  const badge={rent:lateTenants().length,maintenance:openMaint().length,compliance:compAlerts().filter(c=>daysBetween(T,c.expires)<0).length};
+  $("#nav").innerHTML=VIEWS.map(([k,l])=>k==="sec"?`<div class="sec">${l}</div>`:`<a href="#${k}" class="${ui.view===k?"on":""}">${l}${badge[k]?`<span class="count">${badge[k]}</span>`:""}</a>`).join("");
+  document.querySelectorAll("#country button").forEach(b=>b.classList.toggle("on",b.dataset.c===ui.country));
+  $("#today").textContent="Today "+fdate(T);
+}
+
+/* ---------- building blocks ---------- */
+const pill=(t,c)=>`<span class="pill ${c}">${esc(t)}</span>`;
+const flag=c=>`<span class="flag">${c==="UK"?"UK":"IN"}</span>`;
+const stateCls={Paid:"p-ok",Due:"p-info","Part paid":"p-warn",Overdue:"p-bad"};
+const stageCls={lead:"p-mute",application:"p-info",verification:"p-info",agreement:"p-warn",movein:"p-brand",active:"p-ok",notice:"p-warn",ended:"p-mute"};
+function head(title,sub,actions){return `<div class="head"><div><h1>${title}</h1>${sub?`<p>${sub}</p>`:""}</div><div class="row">${actions||""}</div></div>`}
+function sumBy(list,f){const o={UK:0,IN:0};list.forEach(x=>{const r=f(x);if(r)o[r[0]]+=r[1]});return o}
+function moneyPair(o){const parts=[];if(inScope("UK"))parts.push(money(o.UK,"UK"));if(inScope("IN"))parts.push(money(o.IN,"IN"));return parts.join(" · ")}
+
+/* ---------- views ---------- */
+const V={};
+V.dashboard=()=>{
+  const cur=ym(T);
+  const thisMonth=S.charges.filter(c=>c.period===cur&&inScope(ctry(ten(c.tenantId))));
+  const L=Object.fromEntries(S.tenants.map(t=>[t.id,ledger(t.id)]));
+  const due=sumBy(thisMonth,c=>[ctry(ten(c.tenantId)),c.amount]);
+  const got=sumBy(thisMonth,c=>{const x=L[c.tenantId].charges.find(y=>y.id===c.id);return [ctry(ten(c.tenantId)),x.paid]});
+  const arr=sumBy(scopedTenants(),t=>[ctry(t),arrears(t.id)]);
+  const props=scopedProps();const let_=props.filter(p=>p.status==="Let").length;
+  const late=lateTenants();
+  const renew=scopedTenants().filter(t=>t.end&&["active","notice"].includes(t.stage)&&daysBetween(T,t.end)<=60);
+  const pipeline=scopedTenants().filter(t=>["lead","application","verification","agreement","movein"].includes(t.stage));
+  return head("Good to see you","Everything that needs a decision today across your "+props.length+" properties.",
+    `<button class="btn" data-a="pay">Record payment</button><button class="btn primary" data-a="maint-new">Log repair</button>`)+
+  `<div class="kpis">
+    <div class="kpi"><div class="l">Rent due ${monthName(cur)}</div><div class="v">${moneyPair(due)}</div><div class="s">${thisMonth.length} charges</div></div>
+    <div class="kpi"><div class="l">Collected this month</div><div class="v">${moneyPair(got)}</div><div class="s">${Math.round(((got.UK+got.IN/S.fx)/Math.max(1,due.UK+due.IN/S.fx))*100)}% of the month</div></div>
+    <div class="kpi ${late.length?"alert":""}"><div class="l">In arrears</div><div class="v">${moneyPair(arr)}</div><div class="s">${late.length} tenant${late.length===1?"":"s"} late</div></div>
+    <div class="kpi"><div class="l">Occupancy</div><div class="v">${let_}/${props.length}</div><div class="s">${props.length-let_} vacant</div></div>
+    <div class="kpi ${openMaint().some(m=>m.priority==="Emergency")?"alert":""}"><div class="l">Open repairs</div><div class="v">${openMaint().length}</div><div class="s">${openMaint().filter(m=>m.priority==="Emergency").length} emergency</div></div>
+  </div>
+  <div class="grid g2">
+   <section class="panel"><div class="ph"><h2>Chase rent</h2><a href="#rent" class="small">All payments</a></div>
+    <div class="list">${late.length?late.map(t=>`<div class="item"><div><div class="t">${esc(t.name)} ${flag(ctry(t))}</div><div class="small muted">${esc(prop(t.propertyId).name)} · oldest ${oldestLate(t.id)} days late</div></div>
+      <div class="row"><b class="num">${money(arrears(t.id),ctry(t))}</b><button class="btn sm" data-a="remind" data-id="${t.id}">Reminder</button><button class="btn sm" data-a="pay" data-id="${t.id}">Paid</button></div></div>`).join(""):`<div class="empty">Everyone is paid up.</div>`}</div></section>
+   <section class="panel"><div class="ph"><h2>Repairs</h2><a href="#maintenance" class="small">Board</a></div>
+    <div class="list">${openMaint().sort((a,b)=>Object.keys(PRIORITY).indexOf(a.priority)-Object.keys(PRIORITY).indexOf(b.priority)).slice(0,5).map(maintItem).join("")||`<div class="empty">No open repairs.</div>`}</div></section>
+   <section class="panel"><div class="ph"><h2>Certificates and renewals</h2><a href="#compliance" class="small">Compliance</a></div>
+    <div class="list">${compAlerts().sort((a,b)=>a.expires<b.expires?-1:1).map(c=>{const [s,cl,d]=compState(c);return `<div class="item"><div><div class="t">${esc(c.type)}</div><div class="small muted">${esc(prop(c.propertyId).name)} ${flag(prop(c.propertyId).country)}</div></div><div class="row">${pill(d<0?`Expired ${-d}d ago`:`${d} days`,cl)}</div></div>`}).join("")||`<div class="empty">Nothing due in the next 30 days.</div>`}</div></section>
+   <section class="panel"><div class="ph"><h2>Tenancies moving</h2><a href="#onboarding" class="small">Pipeline</a></div>
+    <div class="list">${[...pipeline.map(t=>[t,"Onboarding: "+stageName(t.stage)]),...renew.map(t=>[t,t.stage==="notice"?"Moving out "+fdate(t.end):"Agreement ends "+fdate(t.end)])].map(([t,s])=>`<div class="item click" data-a="tenant" data-id="${t.id}" style="cursor:pointer"><div><div class="t">${esc(t.name)} ${flag(ctry(t))}</div><div class="small muted">${esc(prop(t.propertyId).name)}</div></div>${pill(s,stageCls[t.stage])}</div>`).join("")||`<div class="empty">No changes coming up.</div>`}</div></section>
+  </div>
+  <section class="panel"><h2>Recent activity</h2><div class="list">${S.log.slice(0,6).map(l=>`<div class="item"><span>${esc(l.text)}</span><span class="small muted">${fdate(l.at)}</span></div>`).join("")}</div></section>`;
+};
+function maintItem(m){const p=prop(m.propertyId);const age=daysBetween(m.reported,T);const over=m.status!=="Resolved"&&age>PRIORITY_SLA[m.priority];
+  return `<div class="item click" data-a="maint" data-id="${m.id}" style="cursor:pointer"><div><div class="t">${esc(m.title)}</div><div class="small muted">${esc(p.name)} ${flag(p.country)} · ${age===0?"today":age+"d ago"} · ${esc(m.status)}</div></div><div class="row">${pill(m.priority,PRIORITY[m.priority])}${over?pill("Past target","p-bad"):""}</div></div>`}
+
+V.onboarding=()=>{
+  const cols=STAGES.slice(0,5);
+  const list=scopedTenants();
+  return head("Onboarding","From first enquiry to keys. Each country has its own checklist, so nothing gets missed: Right to Rent and deposit protection in the UK, police verification and agreement registration in India.",
+    `<button class="btn primary" data-a="tenant-new">Add applicant</button>`)+
+  `<div class="board">${cols.map(([k,l])=>{const items=list.filter(t=>t.stage===k);return `<div class="col"><h3><span>${l}</span><span class="mono">${items.length}</span></h3>
+    ${items.map(t=>{const c=ctry(t);const done=ONBOARD[c].filter(x=>t.onboard[x[0]]).length;const pct=Math.round(done/ONBOARD[c].length*100);
+      return `<div class="card" data-a="tenant" data-id="${t.id}" tabindex="0"><div class="row" style="justify-content:space-between"><b>${esc(t.name)}</b>${flag(c)}</div>
+      <div class="small muted">${esc(prop(t.propertyId).name)}</div><div class="small muted">${money(t.rent,c)} a month${t.start?" · from "+fdate(t.start):""}</div>
+      <div class="bar"><i style="width:${pct}%"></i></div><div class="small muted">${done} of ${ONBOARD[c].length} checks</div></div>`}).join("")||`<div class="small muted">None</div>`}</div>`}).join("")}</div>`;
+};
+V.tenants=()=>{
+  const list=scopedTenants().filter(t=>!["lead"].includes(t.stage));
+  return head("Tenants","Everyone with a tenancy, past and present. Open a tenant for their ledger, checklists, repairs and notes.",`<button class="btn primary" data-a="tenant-new">Add tenant</button>`)+
+  `<section class="panel"><div class="tw"><table><thead><tr><th>Tenant</th><th>Property</th><th>Stage</th><th class="r">Rent</th><th class="r">Balance</th><th>Agreement ends</th><th>Deposit</th></tr></thead><tbody>
+  ${list.map(t=>{const c=ctry(t);const b=balance(t.id);return `<tr class="click" data-a="tenant" data-id="${t.id}"><td><b>${esc(t.name)}</b><div class="small muted">${esc(t.phone)}</div></td><td>${esc(prop(t.propertyId).name)} ${flag(c)}</td><td>${pill(stageName(t.stage),stageCls[t.stage])}</td>
+   <td class="r num">${money(t.rent,c)}</td><td class="r num" style="color:${arrears(t.id)>0?"var(--bad)":"inherit"}">${b>0?money(b,c):b<0?money(-b,c)+" credit":"—"}</td><td>${t.end?fdate(t.end):c==="UK"?"Periodic":"—"}</td><td class="small">${t.deposit?money(t.deposit,c):""}<div class="muted">${esc(t.depositRef||"")}</div></td></tr>`}).join("")}
+  </tbody></table></div></section>`;
+};
+V.rent=()=>{
+  const ts=scopedTenants().filter(t=>["active","notice","ended"].includes(t.stage));
+  const rows=[];ts.forEach(t=>ledger(t.id).charges.filter(c=>c.bal>0||c.period===ym(T)).forEach(c=>rows.push([t,c])));
+  rows.sort((a,b)=>b[1].late-a[1].late);
+  const pays=S.payments.filter(p=>inScope(ctry(ten(p.tenantId)))).sort((a,b)=>a.date<b.date?1:-1).slice(0,15);
+  return head("Rent and payments","Charges are raised automatically each month on the tenant's due date. Payments are matched to the oldest unpaid month first.",
+   `<button class="btn" data-a="charge">Add charge</button><button class="btn primary" data-a="pay">Record payment</button>`)+
+  `<section class="panel"><div class="ph"><h2>This month and anything unpaid</h2></div><div class="tw"><table><thead><tr><th>Tenant</th><th>Month</th><th>Due</th><th class="r">Amount</th><th class="r">Paid</th><th>Status</th><th></th></tr></thead><tbody>
+  ${rows.map(([t,c])=>{const k=ctry(t);return `<tr><td><b>${esc(t.name)}</b> ${flag(k)}<div class="small muted">${esc(prop(t.propertyId).name)}</div></td><td>${monthName(c.period)}${c.type!=="Rent"?`<div class="small muted">${esc(c.type)}</div>`:""}</td><td>${fdate(c.due)}</td>
+   <td class="r num">${money(c.amount,k)}</td><td class="r num">${money(c.paid,k)}</td><td>${pill(c.late?`${c.state} · ${c.late}d`:c.state,stateCls[c.state])}</td>
+   <td><div class="row" style="justify-content:flex-end">${c.bal>0?`<button class="btn sm" data-a="remind" data-id="${t.id}">Reminder</button><button class="btn sm" data-a="pay" data-id="${t.id}">Record</button>`:`<button class="btn sm" data-a="receipt" data-id="${c.id}">Receipt</button>`}</div></td></tr>`}).join("")}
+  </tbody></table></div></section>
+  <div class="grid g2">
+  <section class="panel"><h2>Latest payments</h2><div class="tw"><table><thead><tr><th>Date</th><th>Tenant</th><th>Method</th><th class="r">Amount</th></tr></thead><tbody>
+  ${pays.map(p=>{const t=ten(p.tenantId);return `<tr><td>${fdate(p.date)}</td><td>${esc(t.name)}</td><td>${esc(p.method)}${p.ref?`<div class="small muted">${esc(p.ref)}</div>`:""}</td><td class="r num">${money(p.amount,ctry(t))}</td></tr>`}).join("")}
+  </tbody></table></div></section>
+  <section class="panel"><h2>Late rent rules</h2><div class="list">
+   <div class="item"><div><div class="t">UK ${flag("UK")}</div><div class="small muted">A late fee is only allowed once rent is 14 days late, and is capped at 3% above the Bank of England base rate a year. Keep a written record of every reminder. Possession for arrears needs a Section 8 notice; Section 21 no-fault evictions ended in England on 1 May 2026.</div></div></div>
+   <div class="item"><div><div class="t">India ${flag("IN")}</div><div class="small muted">Penalties and notice periods follow the rent agreement. Give tenants monthly rent receipts so they can claim HRA. If rent is over ₹50,000 a month the tenant deducts TDS under section 194-IB, so share your PAN.</div></div></div>
+  </div></section></div>`;
+};
+V.maintenance=()=>{
+  const list=S.maint.filter(m=>inScope(prop(m.propertyId).country));
+  return head("Maintenance","Each repair has a target response time by priority: emergency 24 hours, high 3 days, normal 2 weeks, low 4 weeks.",`<button class="btn primary" data-a="maint-new">Log repair</button>`)+
+  `<div class="board">${MAINT_STATUS.map(s=>{const it=list.filter(m=>m.status===s);return `<div class="col"><h3><span>${s}</span><span class="mono">${it.length}</span></h3>${it.map(m=>{const p=prop(m.propertyId);const age=daysBetween(m.reported,T);const over=s!=="Resolved"&&age>PRIORITY_SLA[m.priority];
+    return `<div class="card" data-a="maint" data-id="${m.id}" tabindex="0"><div class="row">${pill(m.priority,PRIORITY[m.priority])}${over?pill("Past target","p-bad"):""}</div><b>${esc(m.title)}</b><div class="small muted">${esc(p.name)} ${flag(p.country)}</div><div class="small muted">${esc(m.category)} · ${age}d old${m.cost?" · "+money(m.cost,p.country):""}</div></div>`}).join("")||`<div class="small muted">None</div>`}</div>`}).join("")}</div>`;
+};
+V.issues=()=>{
+  const list=S.issues.filter(i=>inScope(ctry(ten(i.tenantId)))).sort((a,b)=>(a.status==="Open"?0:1)-(b.status==="Open"?0:1)||(a.date<b.date?1:-1));
+  return head("Issues and notices","Complaints, neighbour and society disputes, arrears conversations, notices served or received. A dated record protects you if things escalate.",`<button class="btn primary" data-a="issue-new">Log issue</button>`)+
+  `<section class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Issue</th><th>Tenant</th><th>Type</th><th>Status</th></tr></thead><tbody>
+  ${list.map(i=>{const t=ten(i.tenantId);return `<tr class="click" data-a="issue" data-id="${i.id}"><td>${fdate(i.date)}</td><td><b>${esc(i.title)}</b><div class="small muted">${esc(i.notes)}</div></td><td>${esc(t.name)} ${flag(ctry(t))}</td><td>${esc(i.type)}</td><td>${pill(i.status,i.status==="Open"?"p-warn":"p-ok")}</td></tr>`}).join("")}
+  </tbody></table></div></section>`;
+};
+V.compliance=()=>{
+  const ps=scopedProps();
+  return head("Compliance","Certificates, licences and renewals per property, with expiry tracking. UK: gas safety every year, EICR every 5 years, EPC every 10 years. India: rent agreement renewals, property tax and police verification.",`<button class="btn primary" data-a="comp-new">Add certificate</button>`)+
+  `<div class="grid g3">${ps.map(p=>`<section class="panel"><div class="ph"><h2>${esc(p.name)}</h2>${flag(p.country)}</div><div class="list">
+  ${S.compliance.filter(c=>c.propertyId===p.id).sort((a,b)=>a.expires<b.expires?-1:1).map(c=>{const [s,cl,d]=compState(c);return `<div class="item"><div><div class="t">${esc(c.type)}</div><div class="small muted">${d<0?"Expired":"Expires"} ${fdate(c.expires)}${c.ref?" · "+esc(c.ref):""}</div></div><div class="row">${pill(s,cl)}<button class="btn sm" data-a="comp-renew" data-id="${c.id}">Renewed</button></div></div>`}).join("")||`<div class="empty">Nothing recorded.</div>`}
+  </div></section>`).join("")}</div>`;
+};
+V.moveout=()=>{
+  const list=scopedTenants().filter(t=>t.stage==="notice"||t.stage==="ended");
+  return head("Move-out","Notice, check-out inspection, deductions and the deposit return, in order. Close the tenancy when it is all done and the property goes back to vacant.",
+   `<button class="btn" data-a="notice-new">Record notice</button>`)+
+  (list.length?`<div class="grid g2">${list.map(t=>{const c=ctry(t);const items=MOVEOUT[c];const done=items.filter(x=>t.moveout[x[0]]).length;const ded=(t.deductions||[]).reduce((a,d)=>a+d.amount,0);const arr=Math.max(0,balance(t.id));
+   return `<section class="panel"><div class="ph"><div><h2>${esc(t.name)} ${flag(c)}</h2><div class="small muted">${esc(prop(t.propertyId).name)} · ${t.stage==="ended"?"Moved out":"Leaving"} ${fdate(t.end)}</div></div>${pill(stageName(t.stage),stageCls[t.stage])}</div>
+   <div class="bar"><i style="width:${done/items.length*100}%"></i></div><p class="small muted">${done} of ${items.length} steps done</p>
+   <dl class="dl"><dt>Deposit held</dt><dd class="num">${money(t.deposit,c)}</dd><dt>Deductions</dt><dd class="num">${money(ded,c)}</dd><dt>Unpaid rent</dt><dd class="num">${money(arr,c)}</dd><dt><b>To return</b></dt><dd class="num"><b>${money(Math.max(0,t.deposit-ded-arr),c)}</b></dd></dl>
+   <div class="row" style="margin-top:12px"><button class="btn primary" data-a="tenant" data-id="${t.id}" data-tab="moveout">Open checklist</button></div></section>`}).join("")}</div>`:`<section class="panel"><div class="empty">No one is on notice. Use “Record notice” when a tenant or you serve notice.</div></section>`)+
+  `<section class="panel"><h2>Deposit deductions: what is fair</h2><div class="grid g2"><div class="small"><b>Usually fair</b><div class="muted">Damage beyond normal use, missing items on the inventory, cleaning to bring it back to check-in standard, unpaid rent or bills.</div></div><div class="small"><b>Usually not</b><div class="muted">Fair wear and tear such as faded paint, light carpet wear or small scuffs. Upgrades or routine redecoration. Anything not backed by the check-in inventory and photos.</div></div></div></section>`;
+};
+V.properties=()=>{
+  const ps=scopedProps();
+  return head("Properties","Your portfolio across both countries. Rent is in each property's own currency.",`<button class="btn primary" data-a="prop-new">Add property</button>`)+
+  `<div class="grid g3">${ps.map(p=>{const t=S.tenants.find(x=>x.propertyId===p.id&&["active","notice"].includes(x.stage));const om=S.maint.filter(m=>m.propertyId===p.id&&m.status!=="Resolved").length;const ca=S.compliance.filter(c=>c.propertyId===p.id&&daysBetween(T,c.expires)<=30).length;
+   return `<section class="panel"><div class="ph"><div><h2>${esc(p.name)}</h2><div class="small muted">${esc(p.address)}, ${esc(p.city)}</div></div>${flag(p.country)}</div>
+   <dl class="dl"><dt>Status</dt><dd>${pill(p.status,p.status==="Let"?"p-ok":"p-warn")}</dd><dt>Rent</dt><dd class="num">${money(p.rent,p.country)} a month</dd><dt>Bedrooms</dt><dd>${p.beds}</dd><dt>Tenant</dt><dd>${t?`<a href="#tenants" data-a="tenant" data-id="${t.id}">${esc(t.name)}</a>`:"—"}</dd><dt>Open repairs</dt><dd>${om}</dd><dt>Certificates due</dt><dd>${ca?pill(ca+" in 30 days","p-warn"):"None"}</dd></dl>
+   <div class="row" style="margin-top:12px"><button class="btn sm" data-a="prop-edit" data-id="${p.id}">Edit</button>${p.status==="Vacant"?`<button class="btn sm" data-a="tenant-new" data-id="${p.id}">Add applicant</button>`:""}</div></section>`}).join("")}</div>`;
+};
+V.expenses=()=>{
+  const list=S.expenses.filter(e=>inScope(prop(e.propertyId).country)).sort((a,b)=>a.date<b.date?1:-1);
+  return head("Expenses","Repairs, agent fees, insurance, service and society charges, property tax. Every cost feeds the profit report and your tax return.",`<button class="btn primary" data-a="exp-new">Add expense</button>`)+
+  `<section class="panel"><div class="tw"><table><thead><tr><th>Date</th><th>Property</th><th>Category</th><th>Note</th><th class="r">Amount</th><th></th></tr></thead><tbody>
+  ${list.map(e=>{const p=prop(e.propertyId);return `<tr><td>${fdate(e.date)}</td><td>${esc(p.name)} ${flag(p.country)}</td><td>${esc(e.category)}</td><td class="muted">${esc(e.note)}</td><td class="r num">${money(e.amount,p.country)}</td><td class="r"><button class="btn sm danger" data-a="exp-del" data-id="${e.id}">Remove</button></td></tr>`}).join("")}
+  </tbody></table></div></section>`;
+};
+V.reports=()=>{
+  const from=addMonths(T,-12);
+  const rows=scopedProps().map(p=>{const tids=S.tenants.filter(t=>t.propertyId===p.id).map(t=>t.id);
+    const inc=S.payments.filter(x=>tids.includes(x.tenantId)&&x.date>=from).reduce((a,x)=>a+x.amount,0);
+    const exp=S.expenses.filter(e=>e.propertyId===p.id&&e.date>=from).reduce((a,e)=>a+e.amount,0)+S.maint.filter(m=>m.propertyId===p.id&&m.reported>=from).reduce((a,m)=>a+(m.cost||0),0);
+    return {p,inc,exp,gbp:x=>p.country==="UK"?x:x/S.fx}});
+  const max=Math.max(1,...rows.map(r=>r.gbp(r.inc)));
+  const tot=rows.reduce((a,r)=>({inc:a.inc+r.gbp(r.inc),exp:a.exp+r.gbp(r.exp)}),{inc:0,exp:0});
+  return head("Reports","Last 12 months of rent received against costs, per property. Combined totals use your exchange rate of ₹"+S.fx+" to £1, set in Setup.",`<button class="btn" data-a="csv">Copy as CSV</button>`)+
+  `<div class="kpis"><div class="kpi"><div class="l">Rent received, 12 months</div><div class="v">${money(tot.inc,"UK")}</div><div class="s">≈ ${money(tot.inc*S.fx,"IN")}</div></div>
+   <div class="kpi"><div class="l">Costs</div><div class="v">${money(tot.exp,"UK")}</div><div class="s">≈ ${money(tot.exp*S.fx,"IN")}</div></div>
+   <div class="kpi"><div class="l">Net before tax</div><div class="v">${money(tot.inc-tot.exp,"UK")}</div><div class="s">≈ ${money((tot.inc-tot.exp)*S.fx,"IN")}</div></div></div>
+  <section class="panel"><div class="ph"><h2>Income and costs by property</h2><div class="legend"><span><i style="background:var(--brand)"></i>Rent received</span><span><i style="background:var(--accent)"></i>Costs</span></div></div>
+   <div class="chart">${rows.map(r=>`<div class="r"><span>${esc(r.p.name)}</span><div class="track"><span class="inc" style="width:${r.gbp(r.inc)/max*100}%"></span><span class="exp" style="width:${r.gbp(r.exp)/max*100}%"></span></div><span class="num r" style="text-align:right">${money(r.inc-r.exp,r.p.country)}</span></div>`).join("")}</div></section>
+  <div class="grid g2"><section class="panel"><h2>UK tax notes ${flag("UK")}</h2><p class="small muted">Rental profit goes on your Self Assessment return (property pages). Mortgage interest is not deducted from profit; it earns a 20% tax credit instead. Making Tax Digital for Income Tax applies to landlords with qualifying income over £50,000 from April 2026, so keep digital records each quarter.</p></section>
+  <section class="panel"><h2>India tax notes ${flag("IN")}</h2><p class="small muted">Rent is taxed as “Income from house property”. Municipal taxes paid are deducted from the annual value, then a flat 30% standard deduction applies, plus home-loan interest under section 24(b). If you live in the UK, Indian rent is also reported on your UK return, with credit for Indian tax under the double tax treaty, and tenants must deduct TDS on rent paid to a non-resident.</p></section></div>
+  <p class="small muted">These notes are general guidance, not tax advice. Check with an accountant for your situation.</p>`;
+};
+V.portal=()=>{
+  const ts=S.tenants.filter(t=>["active","notice"].includes(t.stage));
+  if(!ui.portal||!ts.some(t=>t.id===ui.portal))ui.portal=ts[0]&&ts[0].id;
+  const t=ten(ui.portal);if(!t)return head("Tenant portal","No active tenants.");
+  const c=ctry(t);const l=ledger(t.id);const b=balance(t.id);const next=l.charges.find(x=>x.bal>0);
+  return head("Tenant portal","What your tenant sees: what they owe, their receipts and a simple way to report a repair. Pick a tenant to preview their view.",
+   `<label class="small muted" for="portalPick">Viewing as</label><select id="portalPick" class="btn">${ts.map(x=>`<option value="${x.id}" ${x.id===t.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select>`)+
+  `<div class="portal-hero"><div><div class="small">Hello ${esc(t.name.split(" ")[0])}</div><div class="v">${b>0?money(b,c)+" to pay":"You're all paid up"}</div><div class="small">${next?"Next: "+monthName(next.period)+" rent, due "+fdate(next.due):"Next rent due on day "+t.dueDay+" of the month"}</div></div>
+   <div class="small" style="max-width:320px">${c==="UK"?"Pay by bank transfer to <b>Landlord Account, sort code 00-00-00, account 12345678</b>. Use your surname as the reference.":"Pay by UPI to <b>landlord@upi</b> or NEFT. Add your flat number in the remarks."}</div></div>
+  <div class="grid g2"><section class="panel"><h2>Report a repair</h2><form class="form" id="portalForm">
+   <label class="full" for="pf-title">What's wrong?<input id="pf-title" required placeholder="For example, kitchen tap dripping"></label>
+   <label for="pf-cat">Type<select id="pf-cat">${["Plumbing","Heating","Electrical","Appliances","Damp and mould","Pests","Security","Other"].map(x=>`<option>${x}</option>`).join("")}</select></label>
+   <label for="pf-pri">How urgent?<select id="pf-pri"><option value="Emergency">Emergency (no heat, water, power, or unsafe)</option><option value="High">Soon</option><option value="Normal" selected>Normal</option><option value="Low">Whenever</option></select></label>
+   <label class="full" for="pf-notes">Details and best times for access<textarea id="pf-notes"></textarea></label>
+   <div class="full row"><button class="btn primary" type="submit">Send to landlord</button></div></form></section>
+  <section class="panel"><h2>Your payments</h2><div class="tw"><table><thead><tr><th>Month</th><th class="r">Rent</th><th>Status</th><th></th></tr></thead><tbody>
+   ${l.charges.slice(-6).reverse().map(x=>`<tr><td>${monthName(x.period)}</td><td class="r num">${money(x.amount,c)}</td><td>${pill(x.state,stateCls[x.state])}</td><td class="r">${x.bal<=0?`<button class="btn sm" data-a="receipt" data-id="${x.id}">Receipt</button>`:""}</td></tr>`).join("")}
+   </tbody></table></div>
+   <h3 style="margin-top:16px">Your repair requests</h3><div class="list">${S.maint.filter(m=>m.tenantId===t.id).map(m=>`<div class="item"><span>${esc(m.title)}</span>${pill(m.status,m.status==="Resolved"?"p-ok":"p-info")}</div>`).join("")||`<div class="empty">None yet.</div>`}</div>
+   <div class="row" style="margin-top:12px">${t.stage==="active"?`<button class="btn" data-a="notice-new" data-id="${t.id}">Give notice to leave</button>`:pill("Notice given. Leaving "+fdate(t.end),"p-warn")}</div></section></div>`;
+};
+V.setup=()=>head("Setup","Settings for this browser. Your data is saved on this device only.")+
+  `<section class="panel"><form class="form" id="setupForm"><label for="fx">Exchange rate: rupees per £1<input id="fx" type="number" step="0.01" value="${S.fx}"></label><div class="full row"><button class="btn primary" type="submit">Save</button></div></form></section>
+  <section class="panel"><h2>Demo data</h2><p class="small muted">Everything here is sample data for 7 properties and 8 tenants. Reset it to start the demo again.</p><div class="row" id="resetRow"><button class="btn danger" data-a="reset">Reset sample data</button></div></section>
+  <section class="panel"><h2>What a full version would add</h2><div class="list">
+   ${[["Payments","Open Banking (UK) and UPI AutoPay (India) to mark rent paid automatically."],["Messages","Send reminders and receipts by email, SMS and WhatsApp."],["E-signing","Sign tenancy agreements online. Indian e-stamping and registration links."],["Documents","Store ID, certificates, inventories and photos against each tenancy."],["Accounts","Separate logins for landlord, tenants, agents and contractors."],["Tax","Export to Making Tax Digital software (UK) and ITR schedules (India)."]].map(([a,b])=>`<div class="item"><div><div class="t">${a}</div><div class="small muted">${b}</div></div></div>`).join("")}
+  </div></section>`;
+
+/* ---------- tenant drawer ---------- */
+function tenantDrawer(id,tab){
+  const t=ten(id);const c=ctry(t);const p=prop(t.propertyId);tab=tab||(["lead","application","verification","agreement","movein"].includes(t.stage)?"onboard":t.stage==="notice"||t.stage==="ended"?"moveout":"ledger");
+  const tabs=[["onboard","Onboarding"],["ledger","Rent ledger"],["moveout","Move-out"],["history","Repairs and issues"],["details","Details"]];
+  const L=ledger(t.id);
+  const nextStage={lead:"application",application:"verification",verification:"agreement",agreement:"movein",movein:"active"}[t.stage];
+  let body="";
+  if(tab==="onboard"){const items=ONBOARD[c];const done=items.filter(x=>t.onboard[x[0]]).length;
+    body=`<div class="bar"><i style="width:${done/items.length*100}%"></i></div><p class="small muted">${done} of ${items.length} done · ${c==="UK"?"England rules":"India rules"}</p>
+    <div class="check">${items.map(([k,l,h])=>`<label><input type="checkbox" data-ck="onboard" data-k="${k}" ${t.onboard[k]?"checked":""}><span>${esc(l)}${h?`<span class="hint">${esc(h)}</span>`:""}</span></label>`).join("")}</div>
+    ${nextStage?`<div class="row">${nextStage==="active"&&done<items.length?`<div class="note warn small">${items.length-done} checks are still open. You can move them in anyway, but record why.</div>`:""}<button class="btn primary" data-a="advance" data-id="${t.id}">${nextStage==="active"?"Mark moved in":"Move to "+stageName(nextStage)}</button>${t.stage!=="lead"?"":""}<button class="btn danger" data-a="withdraw" data-id="${t.id}">Withdrawn</button></div>`:""}`}
+  if(tab==="ledger"){const b=balance(t.id);
+    body=`<div class="row"><b>Balance: <span class="num" style="color:${arrears(t.id)>0?"var(--bad)":"inherit"}">${b>0?money(b,c)+" owed":b<0?money(-b,c)+" in credit":"Paid up"}</span></b><span class="grow"></span><button class="btn sm" data-a="remind" data-id="${t.id}">Reminder</button><button class="btn sm" data-a="charge" data-id="${t.id}">Add charge</button><button class="btn sm primary" data-a="pay" data-id="${t.id}">Record payment</button></div>
+    <div class="tw"><table><thead><tr><th>Month</th><th>Due</th><th class="r">Amount</th><th class="r">Paid</th><th>Status</th><th></th></tr></thead><tbody>${L.charges.slice().reverse().map(x=>`<tr><td>${monthName(x.period)}<div class="small muted">${esc(x.type)}</div></td><td>${fdate(x.due)}</td><td class="r num">${money(x.amount,c)}</td><td class="r num">${money(x.paid,c)}</td><td>${pill(x.state,stateCls[x.state])}</td><td>${x.bal<=0?`<button class="btn sm" data-a="receipt" data-id="${x.id}">Receipt</button>`:""}</td></tr>`).join("")||`<tr><td colspan="6" class="empty">No charges yet. Rent starts once the tenant moves in.</td></tr>`}</tbody></table></div>`}
+  if(tab==="moveout"){
+    if(!["notice","ended"].includes(t.stage)){body=`<div class="empty">Not on notice.</div><div class="row">${t.stage==="active"?`<button class="btn" data-a="notice-new" data-id="${t.id}">Record notice</button>`:""}</div>`}
+    else{const items=MOVEOUT[c];const ded=(t.deductions||[]).reduce((a,d)=>a+d.amount,0);const arr=Math.max(0,balance(t.id));
+    body=`<dl class="dl"><dt>Notice received</dt><dd>${fdate(t.noticeDate)}</dd><dt>Leaving</dt><dd>${fdate(t.end)}</dd><dt>Deposit</dt><dd>${money(t.deposit,c)} · ${esc(t.depositRef||"")}</dd></dl>
+    <div class="check">${items.map(([k,l,h])=>`<label><input type="checkbox" data-ck="moveout" data-k="${k}" ${t.moveout[k]?"checked":""}><span>${esc(l)}${h?`<span class="hint">${esc(h)}</span>`:""}</span></label>`).join("")}</div>
+    <h3>Deductions</h3><div class="list">${(t.deductions||[]).map((d,i)=>`<div class="item"><span>${esc(d.reason)}</span><div class="row"><span class="num">${money(d.amount,c)}</span><button class="btn sm danger" data-a="ded-del" data-id="${t.id}" data-i="${i}">Remove</button></div></div>`).join("")||`<div class="small muted">None</div>`}</div>
+    <form class="form" id="dedForm"><label for="ded-r">Reason<input id="ded-r" required placeholder="Broken blind, bedroom 2"></label><label for="ded-a">Amount<input id="ded-a" type="number" min="0" required></label><div class="full"><button class="btn sm" type="submit">Add deduction</button></div></form>
+    <div class="note"><b>Deposit return:</b> ${money(t.deposit,c)} held − ${money(ded,c)} deductions − ${money(arr,c)} unpaid rent = <b>${money(Math.max(0,t.deposit-ded-arr),c)}</b> to return.${t.deposit-ded-arr<0?` The tenant still owes ${money(ded+arr-t.deposit,c)}.`:""}</div>
+    ${t.stage==="notice"?`<div class="row" id="closeRow"><button class="btn primary" data-a="close" data-id="${t.id}">Close tenancy</button></div>`:pill("Tenancy closed","p-mute")}`}}
+  if(tab==="history"){const ms=S.maint.filter(m=>m.tenantId===t.id);const is=S.issues.filter(i=>i.tenantId===t.id);
+    body=`<h3>Repairs</h3><div class="list">${ms.map(maintItem).join("")||`<div class="small muted">None</div>`}</div><h3>Issues and notices</h3><div class="list">${is.map(i=>`<div class="item click" data-a="issue" data-id="${i.id}" style="cursor:pointer"><div><div class="t">${esc(i.title)}</div><div class="small muted">${fdate(i.date)} · ${esc(i.type)}</div></div>${pill(i.status,i.status==="Open"?"p-warn":"p-ok")}</div>`).join("")||`<div class="small muted">None</div>`}</div><div class="row"><button class="btn sm" data-a="issue-new" data-id="${t.id}">Log issue</button><button class="btn sm" data-a="maint-new" data-id="${t.id}">Log repair</button></div>`}
+  if(tab==="details"){body=`<dl class="dl"><dt>Email</dt><dd>${esc(t.email)}</dd><dt>Phone</dt><dd>${esc(t.phone)}</dd><dt>Property</dt><dd>${esc(p.name)}, ${esc(p.address)}, ${esc(p.city)}</dd><dt>Rent</dt><dd>${money(t.rent,c)} due on day ${t.dueDay}</dd><dt>Start</dt><dd>${fdate(t.start)}</dd><dt>Agreement ends</dt><dd>${t.end?fdate(t.end):c==="UK"?"Periodic, no end date":"—"}</dd><dt>Deposit</dt><dd>${money(t.deposit,c)} ${esc(t.depositRef||"")}</dd></dl><div class="row"><button class="btn" data-a="tenant-edit" data-id="${t.id}">Edit details</button>${t.stage==="active"?`<button class="btn" data-a="increase" data-id="${t.id}">Rent increase or renewal</button>`:""}</div>`}
+  openDrawer(`<div class="row" style="justify-content:space-between"><div><h1>${esc(t.name)}</h1><div class="muted small">${esc(p.name)} ${flag(c)} · ${money(t.rent,c)} a month</div></div><div class="row">${pill(stageName(t.stage),stageCls[t.stage])}<button class="btn sm" data-a="close-layer">Close</button></div></div>
+  <div class="tabs">${tabs.map(([k,l])=>`<button data-a="tab" data-id="${t.id}" data-tab="${k}" class="${k===tab?"on":""}">${l}</button>`).join("")}</div>${body}`,{tenant:t.id,tab});
+}
+
+/* ---------- layers ---------- */
+let layerCtx=null;
+function openDrawer(html,ctx){layerCtx=ctx||null;$("#layer").innerHTML=`<div class="scrim" data-scrim><div class="drawer" role="dialog" aria-modal="true">${html}</div></div>`}
+function openModal(html){layerCtx=null;$("#layer").innerHTML=`<div class="scrim center" data-scrim><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;const f=$("#layer input,#layer select,#layer textarea");if(f)f.focus()}
+function closeLayer(){$("#layer").innerHTML="";layerCtx=null}
+function refreshDrawer(){if(layerCtx&&layerCtx.tenant)tenantDrawer(layerCtx.tenant,layerCtx.tab)}
+function field(f){const id="f-"+f.k;const v=f.v==null?"":f.v;const cls=f.full?"full":"";
+  if(f.t==="select")return `<label class="${cls}" for="${id}">${f.l}<select id="${id}" name="${f.k}">${f.o.map(o=>{const [val,lab]=Array.isArray(o)?o:[o,o];return `<option value="${esc(val)}" ${String(val)===String(v)?"selected":""}>${esc(lab)}</option>`}).join("")}</select></label>`;
+  if(f.t==="textarea")return `<label class="full" for="${id}">${f.l}<textarea id="${id}" name="${f.k}">${esc(v)}</textarea></label>`;
+  return `<label class="${cls}" for="${id}">${f.l}<input id="${id}" name="${f.k}" type="${f.t||"text"}" value="${esc(v)}" ${f.req?"required":""} ${f.t==="number"?'step="any" min="0"':""}></label>`}
+let formHandler=null;
+function formModal(title,fields,onSubmit,submitLabel,extra){formHandler=onSubmit;openModal(`<h2>${title}</h2>${extra||""}<form class="form" id="modalForm">${fields.map(field).join("")}<div class="full row"><button class="btn primary" type="submit">${submitLabel||"Save"}</button><button class="btn" type="button" data-a="close-layer">Cancel</button></div></form>`)}
+
+/* ---------- actions ---------- */
+const tenantOpts=filter=>S.tenants.filter(t=>inScope(ctry(t))&&(filter?filter(t):true)).map(t=>[t.id,t.name+" · "+prop(t.propertyId).name]);
+const propOpts=()=>scopedProps().map(p=>[p.id,p.name+" ("+p.country+")"]);
+const A={};
+A.tenant=el=>tenantDrawer(el.dataset.id,el.dataset.tab);
+A.tab=el=>tenantDrawer(el.dataset.id,el.dataset.tab);
+A["close-layer"]=closeLayer;
+A.pay=el=>{const id=el.dataset.id;const opts=tenantOpts(t=>["active","notice","ended"].includes(t.stage));if(!opts.length)return;const t=ten(id||opts[0][0]);const c=ctry(t);
+  formModal("Record payment",[{k:"tenant",l:"Tenant",t:"select",o:opts,v:t.id,full:1},{k:"amount",l:"Amount ("+(c==="UK"?"£":"₹")+")",t:"number",v:Math.max(0,balance(t.id))||t.rent,req:1},{k:"date",l:"Date received",t:"date",v:T},{k:"method",l:"Method",t:"select",o:[...METHODS.UK,...METHODS.IN].filter((x,i,a)=>a.indexOf(x)===i),v:METHODS[c][0]},{k:"ref",l:"Reference",v:""}],
+  d=>{const amt=+d.amount;if(!(amt>0))return "Enter an amount above zero.";S.payments.push({id:uid("pay"),tenantId:d.tenant,amount:amt,date:d.date||T,method:d.method,ref:d.ref});save("Payment of "+money(amt,ctry(ten(d.tenant)))+" recorded for "+ten(d.tenant).name)},"Record payment")};
+A.charge=el=>{const opts=tenantOpts(t=>["active","notice","ended"].includes(t.stage));
+  formModal("Add charge",[{k:"tenant",l:"Tenant",t:"select",o:opts,v:el.dataset.id,full:1},{k:"type",l:"Type",t:"select",o:["Late fee","Utility bill","Damage","Society maintenance","Council tax","Other"]},{k:"amount",l:"Amount",t:"number",req:1},{k:"due",l:"Due date",t:"date",v:T}],
+  d=>{if(!(+d.amount>0))return "Enter an amount above zero.";S.charges.push({id:uid("ch"),tenantId:d.tenant,period:ym(d.due||T),type:d.type,amount:+d.amount,due:d.due||T});S.charges.sort((a,b)=>a.due<b.due?-1:1);save(d.type+" added for "+ten(d.tenant).name)},"Add charge",
+  `<p class="small muted">UK: late fees only once rent is 14 days late, capped at 3% above base rate a year. Other fees are banned by the Tenant Fees Act.</p>`)};
+A.remind=el=>{const t=ten(el.dataset.id);const c=ctry(t);const amt=arrears(t.id)||balance(t.id);const days=oldestLate(t.id);const first=t.name.split(" ")[0];
+  const tones={gentle:`Hi ${first}, a friendly reminder that rent of ${money(amt,c)} for ${prop(t.propertyId).name} is now due. If you've already paid, thank you and please ignore this. Let me know if anything's wrong.`,
+   firm:`Hi ${first}, your rent account for ${prop(t.propertyId).name} shows ${money(amt,c)} unpaid, ${days} days overdue. Please pay by ${fdate(addDays(T,3))} or call me to agree a plan.`,
+   final:`Dear ${t.name}, despite earlier reminders ${money(amt,c)} remains unpaid on ${prop(t.propertyId).name}, ${days} days overdue. Please pay in full within 7 days or contact me to agree a written repayment plan. If not, I will take formal steps under the tenancy agreement${c==="UK"?", which may include serving a Section 8 notice":""}.`};
+  const lvl=days>30?"final":days>7?"firm":"gentle";
+  openModal(`<h2>Rent reminder to ${esc(t.name)}</h2><div class="seg" id="toneSeg">${Object.keys(tones).map(k=>`<button type="button" data-tone="${k}" class="${k===lvl?"on":""}">${k[0].toUpperCase()+k.slice(1)}</button>`).join("")}</div><pre class="msg" id="msgText">${esc(tones[lvl])}</pre>
+   <div class="small muted">Send to ${esc(t.phone)} or ${esc(t.email)}</div>
+   <div class="row"><button class="btn primary" data-a="copy">Copy message</button><a class="btn" target="_blank" rel="noopener" id="waLink" href="https://wa.me/${t.phone.replace(/\D/g,"")}?text=${encodeURIComponent(tones[lvl])}">Open WhatsApp</a><button class="btn" data-a="log-remind" data-id="${t.id}">Log as sent</button><button class="btn" data-a="close-layer">Close</button></div>`);
+  $("#toneSeg").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("#toneSeg button").forEach(x=>x.classList.toggle("on",x===b));$("#msgText").textContent=tones[b.dataset.tone];$("#waLink").href=`https://wa.me/${t.phone.replace(/\D/g,"")}?text=${encodeURIComponent(tones[b.dataset.tone])}`})};
+A.copy=()=>{const txt=$("#msgText").textContent;const done=()=>toast("Copied");try{navigator.clipboard.writeText(txt).then(done,()=>{selectText()})}catch(e){selectText()}};
+function selectText(){const r=document.createRange();r.selectNodeContents($("#msgText"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Selected. Press Ctrl+C or ⌘C to copy")}
+A["log-remind"]=el=>{const t=ten(el.dataset.id);S.issues.push({id:uid("i"),tenantId:t.id,type:"Rent arrears",title:"Rent reminder sent",status:"Resolved",date:T,notes:$("#msgText").textContent});closeLayer();save("Reminder logged for "+t.name)};
+A.receipt=el=>{const ch=S.charges.find(c=>c.id===el.dataset.id);const t=ten(ch.tenantId);const p=prop(t.propertyId);const c=p.country;
+  const txt=c==="IN"?`RENT RECEIPT\n\nReceived with thanks from ${t.name} the sum of ${money(ch.amount,c)} towards rent for ${monthName(ch.period)} for the property at ${p.address}, ${p.city}.\n\nLandlord: Demo Landlord\nLandlord PAN: ABCDE1234F\nDate: ${fdate(T)}\n\n(A revenue stamp is needed on cash receipts above ₹5,000.)`:`RENT RECEIPT\n\nReceived from ${t.name}: ${money(ch.amount,c)}\nFor: ${ch.type} for ${monthName(ch.period)}\nProperty: ${p.address}, ${p.city}\nDate: ${fdate(T)}\nLandlord: Demo Landlord`;
+  openModal(`<h2>Receipt</h2><pre class="msg" id="msgText">${esc(txt)}</pre><div class="row"><button class="btn primary" data-a="copy">Copy receipt</button><button class="btn" data-a="close-layer">Close</button></div>`)};
+A["maint-new"]=el=>{const tid=el.dataset.id;const t=tid&&ten(tid);
+  formModal("Log a repair",[{k:"title",l:"Problem",req:1,full:1},{k:"property",l:"Property",t:"select",o:propOpts(),v:t?t.propertyId:""},{k:"priority",l:"Priority",t:"select",o:Object.keys(PRIORITY),v:"Normal"},{k:"category",l:"Category",t:"select",o:["Plumbing","Heating","Electrical","Appliances","Damp and mould","Pests","Security","Structural","Other"]},{k:"contractor",l:"Contractor"},{k:"notes",l:"Notes",t:"textarea"}],
+  d=>{const tn=S.tenants.find(x=>x.propertyId===d.property&&["active","notice"].includes(x.stage));S.maint.push({id:uid("m"),propertyId:d.property,tenantId:tn?tn.id:"",title:d.title,category:d.category,priority:d.priority,status:d.contractor?"Assigned":"Reported",reported:T,contractor:d.contractor,cost:0,notes:d.notes});save("Repair logged: "+d.title)},"Log repair")};
+A.maint=el=>{const m=S.maint.find(x=>x.id===el.dataset.id);const p=prop(m.propertyId);
+  formModal(esc(m.title),[{k:"status",l:"Status",t:"select",o:MAINT_STATUS,v:m.status},{k:"priority",l:"Priority",t:"select",o:Object.keys(PRIORITY),v:m.priority},{k:"contractor",l:"Contractor",v:m.contractor,full:1},{k:"cost",l:"Cost ("+(p.country==="UK"?"£":"₹")+")",t:"number",v:m.cost},{k:"reported",l:"Reported",t:"date",v:m.reported},{k:"notes",l:"Notes",t:"textarea",v:m.notes}],
+  d=>{Object.assign(m,{status:d.status,priority:d.priority,contractor:d.contractor,cost:+d.cost||0,reported:d.reported||m.reported,notes:d.notes});save("Repair updated: "+m.title)},"Save",`<p class="small muted">${esc(p.name)} ${flag(p.country)} · ${esc(m.category)}${m.tenantId?" · tenant "+esc(ten(m.tenantId).name):""}</p>`)};
+A["issue-new"]=el=>{formModal("Log issue or notice",[{k:"title",l:"Summary",req:1,full:1},{k:"tenant",l:"Tenant",t:"select",o:tenantOpts(),v:el.dataset.id},{k:"type",l:"Type",t:"select",o:["Complaint","Neighbour","Society / RWA","Rent arrears","Damage","Access request","Notice","Renewal","Anti-social behaviour","Other"]},{k:"notes",l:"What happened",t:"textarea"}],
+  d=>{S.issues.push({id:uid("i"),tenantId:d.tenant,type:d.type,title:d.title,status:"Open",date:T,notes:d.notes});save("Issue logged: "+d.title)},"Log issue")};
+A.issue=el=>{const i=S.issues.find(x=>x.id===el.dataset.id);formModal(esc(i.title),[{k:"status",l:"Status",t:"select",o:["Open","Resolved"],v:i.status},{k:"type",l:"Type",v:i.type},{k:"notes",l:"Notes",t:"textarea",v:i.notes}],d=>{Object.assign(i,d);save("Issue updated")},"Save",`<p class="small muted">${fdate(i.date)} · ${esc(ten(i.tenantId).name)}</p>`)};
+A["comp-new"]=()=>{const ps=propOpts();formModal("Add certificate or renewal",[{k:"property",l:"Property",t:"select",o:ps,full:1},{k:"type",l:"Type",t:"select",o:[...COMPLIANCE_TYPES.UK.map(x=>[x,x+" (UK)"]),...COMPLIANCE_TYPES.IN.map(x=>[x,x+" (India)"])]},{k:"expires",l:"Expires or due",t:"date",v:addMonths(T,12)},{k:"ref",l:"Reference",full:1}],
+  d=>{S.compliance.push({id:uid("c"),propertyId:d.property,type:d.type,expires:d.expires,ref:d.ref});save(d.type+" added")})};
+A["comp-renew"]=el=>{const c=S.compliance.find(x=>x.id===el.dataset.id);const yrs={"EICR electrical report":60,"EPC":120,"Rent agreement renewal":11}[c.type]||12;
+  formModal("Renew: "+esc(c.type),[{k:"expires",l:"New expiry",t:"date",v:addMonths(T,yrs)},{k:"ref",l:"Reference",v:c.ref}],d=>{c.expires=d.expires;c.ref=d.ref;save(c.type+" renewed to "+fdate(d.expires))})};
+A["exp-new"]=()=>formModal("Add expense",[{k:"property",l:"Property",t:"select",o:propOpts(),full:1},{k:"category",l:"Category",t:"select",o:["Repairs","Insurance","Letting agent","Service charge","Ground rent","Society maintenance","Property tax","Council tax (void)","Utilities (void)","Mortgage interest","Legal","Other"]},{k:"amount",l:"Amount",t:"number",req:1},{k:"date",l:"Date",t:"date",v:T},{k:"note",l:"Note"}],
+  d=>{if(!(+d.amount>0))return "Enter an amount above zero.";S.expenses.push({id:uid("e"),propertyId:d.property,date:d.date||T,category:d.category,amount:+d.amount,note:d.note});save("Expense added")});
+A["exp-del"]=el=>{S.expenses=S.expenses.filter(e=>e.id!==el.dataset.id);save("Expense removed")};
+A["prop-new"]=()=>propForm();
+A["prop-edit"]=el=>propForm(prop(el.dataset.id));
+function propForm(p){formModal(p?"Edit property":"Add property",[{k:"name",l:"Name",v:p&&p.name,req:1,full:1},{k:"country",l:"Country",t:"select",o:[["UK","United Kingdom"],["IN","India"]],v:p?p.country:ui.country==="IN"?"IN":"UK"},{k:"city",l:"City",v:p&&p.city},{k:"address",l:"Address",v:p&&p.address,full:1},{k:"beds",l:"Bedrooms",t:"number",v:p?p.beds:2},{k:"rent",l:"Asking rent a month",t:"number",v:p&&p.rent,req:1}],
+  d=>{if(p){Object.assign(p,{name:d.name,country:d.country,city:d.city,address:d.address,beds:+d.beds,rent:+d.rent});save("Property updated")}else{S.props.push({id:uid("p"),name:d.name,country:d.country,city:d.city,address:d.address,beds:+d.beds,rent:+d.rent,status:"Vacant"});save("Property added: "+d.name)}})}
+A["tenant-new"]=el=>{const vac=S.props.filter(p=>inScope(p.country)).map(p=>[p.id,p.name+(p.status==="Vacant"?" (vacant)":"")]);const pid=el.dataset.id||(S.props.find(p=>p.status==="Vacant"&&inScope(p.country))||{}).id;
+  formModal("Add applicant",[{k:"name",l:"Full name",req:1,full:1},{k:"email",l:"Email",t:"email"},{k:"phone",l:"Phone"},{k:"property",l:"Property",t:"select",o:vac,v:pid,full:1},{k:"start",l:"Planned move-in",t:"date",v:addDays(T,30)},{k:"dueDay",l:"Rent due day",t:"number",v:1}],
+  d=>{const p=prop(d.property);const wk=p.country==="UK"?Math.round(p.rent*12/52*5):p.rent*2;S.tenants.push({id:uid("t"),name:d.name,email:d.email,phone:d.phone,propertyId:p.id,stage:"lead",rent:p.rent,dueDay:Math.min(28,Math.max(1,+d.dueDay||1)),start:d.start,end:"",deposit:wk,depositRef:"",onboard:{},moveout:{},deductions:[]});save("Applicant added: "+d.name)},"Add applicant",
+  `<p class="small muted">Deposit is pre-filled at 5 weeks' rent for UK homes and 2 months for India. Change it later in Details.</p>`)};
+A["tenant-edit"]=el=>{const t=ten(el.dataset.id);formModal("Edit "+esc(t.name),[{k:"name",l:"Name",v:t.name,full:1},{k:"email",l:"Email",v:t.email},{k:"phone",l:"Phone",v:t.phone},{k:"rent",l:"Rent a month",t:"number",v:t.rent},{k:"dueDay",l:"Due day",t:"number",v:t.dueDay},{k:"start",l:"Start",t:"date",v:t.start},{k:"end",l:"Agreement ends",t:"date",v:t.end},{k:"deposit",l:"Deposit",t:"number",v:t.deposit},{k:"depositRef",l:"Deposit scheme or reference",v:t.depositRef}],
+  d=>{Object.assign(t,{name:d.name,email:d.email,phone:d.phone,rent:+d.rent,dueDay:Math.min(28,Math.max(1,+d.dueDay||1)),start:d.start,end:d.end,deposit:+d.deposit,depositRef:d.depositRef});save("Tenant updated");tenantDrawer(t.id,"details")})};
+A.advance=el=>{const t=ten(el.dataset.id);const nx={lead:"application",application:"verification",verification:"agreement",agreement:"movein",movein:"active"}[t.stage];t.stage=nx;
+  if(nx==="active"){if(!t.start||t.start>T)t.start=T;if(ctry(t)==="IN"&&!t.end)t.end=addMonths(t.start,11);prop(t.propertyId).status="Let";S.tenants.filter(x=>x.id!==t.id&&x.propertyId===t.propertyId&&["lead","application"].includes(x.stage)).forEach(x=>x.stage="ended");ensureCharges(S);
+    if(ctry(t)==="UK")S.compliance.push({id:uid("c"),propertyId:t.propertyId,type:"Deposit protection",expires:addDays(T,30),ref:"Protect within 30 days"});
+    else S.compliance.push({id:uid("c"),propertyId:t.propertyId,type:"Rent agreement renewal",expires:t.end,ref:""});}
+  save(t.name+" moved to "+stageName(nx));tenantDrawer(t.id)};
+A.withdraw=el=>{const t=ten(el.dataset.id);t.stage="ended";closeLayer();save(t.name+" marked withdrawn")};
+A["notice-new"]=el=>{const opts=tenantOpts(t=>t.stage==="active");if(!opts.length)return toast("No active tenants");const t0=ten(el.dataset.id||opts[0][0]);
+  formModal("Record notice to leave",[{k:"tenant",l:"Tenant",t:"select",o:opts,v:t0.id,full:1},{k:"by",l:"Served by",t:"select",o:["Tenant","Landlord"]},{k:"date",l:"Notice date",t:"date",v:T},{k:"leave",l:"Leaving date",t:"date",v:addMonths(T,ctry(t0)==="UK"?2:1)}],
+  d=>{const t=ten(d.tenant);t.stage="notice";t.noticeDate=d.date;t.end=d.leave;t.moveout={notice:true};t.deductions=t.deductions||[];S.issues.push({id:uid("i"),tenantId:t.id,type:"Notice",title:"Notice to leave served by "+d.by.toLowerCase(),status:"Open",date:d.date,notes:"Leaving "+fdate(d.leave)});closeLayer();save("Notice recorded for "+t.name)},"Record notice",
+  `<p class="small muted">England: tenants give at least 2 months. Landlords now need a Section 8 ground; Section 21 is gone. India: follow the notice period in the agreement.</p>`)};
+A["ded-del"]=el=>{const t=ten(el.dataset.id);t.deductions.splice(+el.dataset.i,1);save("Deduction removed");tenantDrawer(t.id,"moveout")};
+A.close=el=>{const t=ten(el.dataset.id);const c=ctry(t);const ded=(t.deductions||[]).reduce((a,d)=>a+d.amount,0);const ret=Math.max(0,t.deposit-ded-Math.max(0,balance(t.id)));
+  const row=$("#closeRow");row.innerHTML=`<div class="note warn small">Close the tenancy and return ${money(ret,c)} of the deposit? The property will show as vacant.</div><button class="btn primary" data-a="close-yes" data-id="${t.id}">Yes, close it</button><button class="btn" data-a="tab" data-id="${t.id}" data-tab="moveout">Cancel</button>`};
+A["close-yes"]=el=>{const t=ten(el.dataset.id);t.stage="ended";t.moveout.refund=true;prop(t.propertyId).status="Vacant";S.issues.filter(i=>i.tenantId===t.id&&i.type==="Notice").forEach(i=>i.status="Resolved");save("Tenancy closed for "+t.name);tenantDrawer(t.id,"moveout")};
+A.increase=el=>{const t=ten(el.dataset.id);const c=ctry(t);
+  formModal("Rent increase or renewal",[{k:"pct",l:"Increase %",t:"number",v:c==="UK"?4:7},{k:"from",l:"Takes effect",t:"date",v:addMonths(T,c==="UK"?2:1)}],
+  d=>{const nr=Math.round(t.rent*(1+(+d.pct||0)/100));S.issues.push({id:uid("i"),tenantId:t.id,type:"Renewal",title:`Rent ${money(t.rent,c)} → ${money(nr,c)} from ${fdate(d.from)}`,status:"Open",date:T,notes:c==="UK"?"Section 13 notice served":"New 11-month agreement"});t.rent=nr;if(c==="IN")t.end=addMonths(d.from,11);save("Rent change recorded for "+t.name);tenantDrawer(t.id,"details")},"Record",
+  c==="UK"?`<p class="small muted">England: one increase a year, using a Section 13 notice with at least 2 months' notice. The tenant can challenge it at the First-tier Tribunal.</p>`:`<p class="small muted">India: escalation is usually 5–10% at renewal of the 11-month agreement. Register and pay stamp duty on the new agreement.</p>`)};
+A.csv=()=>{const lines=[["Date","Type","Property","Country","Tenant / note","Amount","Currency"].join(",")];
+  S.payments.forEach(p=>{const t=ten(p.tenantId);const pr=prop(t.propertyId);lines.push([p.date,"Rent",pr.name,pr.country,t.name,p.amount,CUR[pr.country]].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(","))});
+  S.expenses.forEach(e=>{const pr=prop(e.propertyId);lines.push([e.date,e.category,pr.name,pr.country,e.note,-e.amount,CUR[pr.country]].map(x=>`"${String(x).replace(/"/g,'""')}"`).join(","))});
+  openModal(`<h2>Transactions as CSV</h2><p class="small muted">Copy and paste into Excel or Google Sheets, or give it to your accountant.</p><pre class="msg" id="msgText" style="max-height:300px;overflow:auto;font-family:var(--font-mono);font-size:11px">${esc(lines.join("\n"))}</pre><div class="row"><button class="btn primary" data-a="copy">Copy CSV</button><button class="btn" data-a="close-layer">Close</button></div>`)};
+A.reset=()=>{$("#resetRow").innerHTML=`<span class="small">This replaces everything with fresh sample data.</span><button class="btn danger" data-a="reset-yes">Yes, reset</button><button class="btn" data-a="reset-no">Cancel</button>`};
+A["reset-yes"]=()=>{S=seed();save("Sample data reset")};
+A["reset-no"]=()=>render();
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  if(e.target.matches("[data-scrim]")){closeLayer();return}
+  const el=e.target.closest("[data-a]");if(!el)return;
+  const a=el.dataset.a;if(A[a]){if(el.tagName==="A"&&!el.target)e.preventDefault();e.stopPropagation();A[a](el)}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeLayer();if(e.key==="Enter"&&e.target.matches(".card[data-a]"))e.target.click()});
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.dataset.ck){const t=ten(layerCtx.tenant);t[el.dataset.ck][el.dataset.k]=el.checked;save();refreshDrawer();return}
+  if(el.id==="portalPick"){ui.portal=el.value;render()}
+});
+document.addEventListener("submit",e=>{
+  e.preventDefault();const f=e.target;
+  if(f.id==="modalForm"){const d=Object.fromEntries(new FormData(f).entries());const err=formHandler&&formHandler(d);if(typeof err==="string"){toast(err);return}if(!layerCtx||!layerCtx.tenant)closeLayer();return}
+  if(f.id==="portalForm"){const t=ten(ui.portal);S.maint.push({id:uid("m"),propertyId:t.propertyId,tenantId:t.id,title:$("#pf-title").value,category:$("#pf-cat").value,priority:$("#pf-pri").value,status:"Reported",reported:T,contractor:"",cost:0,notes:"From tenant portal: "+$("#pf-notes").value});save("Repair reported by "+t.name);return}
+  if(f.id==="dedForm"){const t=ten(layerCtx.tenant);t.deductions=t.deductions||[];t.deductions.push({reason:$("#ded-r").value,amount:+$("#ded-a").value||0});save("Deduction added");refreshDrawer();return}
+  if(f.id==="setupForm"){const v=+$("#fx").value;if(v>0){S.fx=v;save("Exchange rate saved")}}
+});
+$("#country").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;ui.country=b.dataset.c;try{localStorage.setItem(KEY+"-c",ui.country)}catch(x){}render()});
+
+/* ---------- render ---------- */
+const RESERVED=VIEWS.map(v=>v[0]).filter(k=>k!=="sec");
+function render(){const h=location.hash.slice(1);ui.view=RESERVED.includes(h)?h:"dashboard";renderNav();$("#view").innerHTML=V[ui.view]();if(layerCtx&&layerCtx.tenant){/* keep drawer fresh */const ctx=layerCtx;tenantDrawer(ctx.tenant,ctx.tab)}}
+window.addEventListener("hashchange",()=>{closeLayer();render();window.scrollTo(0,0)});
+render();
+})();
+</script>
